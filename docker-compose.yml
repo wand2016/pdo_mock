@@ -27,15 +27,14 @@ services:
 
   workspace:
     tty: true
-    image: composer
+    build:
+      context: .
+      dockerfile: ./docker/workspace/Dockerfile
     depends_on:
       - mariadb
     entrypoint: bash
     volumes:
       - ./:/app
-
-
-    
-
-    
-    
+      - /etc/passwd:/etc/passwd
+      - /etc/shadow:/etc/shadow
+      - /etc/group:/etc/group
