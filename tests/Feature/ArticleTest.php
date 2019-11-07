@@ -7,17 +7,15 @@ namespace Tests\Feature;
 use App\Domain\Article\ArticleRepository\ArticleEloquent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
-use Mockery\MockInterface;
+use Tests\Concerns\MockPdo;
 use Tests\TestCase;
 
 class ArticleTest extends TestCase
 {
     use RefreshDatabase;
+    use MockPdo;
 
-    public function setUp(): void
-    {
-        parent::setUp();
-    }
+    private $connectionsToTransact = ['mysql'];
 
     /**
      * @test
@@ -35,8 +33,7 @@ class ArticleTest extends TestCase
      */
     public function articles_id_idに対応する記事があればその内容を返す(
         string $content
-    )
-    {
+    ) {
         ArticleEloquent::create(['id' => 1, 'content' => $content]);
 
         $this->get('/articles/1')->assertSeeText($content);
@@ -51,12 +48,12 @@ class ArticleTest extends TestCase
         // 1. setup
         // クエリ発行時にPDOExceptionが発生するようにPDOをモック
         // ----------------------------------------
-        /** @var MockInterface $pdoMock */
-        $pdoMock = Mockery::mock(\DB::connection()->getPdo());
+        $pdoMock = $this->mockPdo();
         $pdoMock->shouldReceive('prepare')
+            ->with(Mockery::on(function (string $stmt): bool {
+                return preg_match('/select.*articles/', $stmt) === 1;
+            }))
             ->andThrow(new \PDOException);
-
-        \DB::connection()->setPdo($pdoMock);
 
         // ----------------------------------------
         // 2. action and assertion
@@ -86,6 +83,5 @@ class ArticleTest extends TestCase
         yield [
             'fuga'
         ];
-
     }
 }
